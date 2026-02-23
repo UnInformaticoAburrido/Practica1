@@ -36,6 +36,14 @@ if command -v python3 >/dev/null 2>&1; then ## command -v comprueba si python3 e
             exit $USER_DECLINED
         fi
     fi
+    MQTTVersion=$(strings /usr/local/lib/libpaho-mqttpp3.so.1 | grep -Ei "Paho MQTT C\+\+")
+    if [[ "$MQTTVersion" == *"v. 1.4."* ]]; then
+        echo "Version Paho MQTT C++ correcta o compatible"
+    else
+        echo "Paho MQTT C++ no esta instalado o la version isntalada es incompatible"
+        echo "Porfavor instale una versión compatible con C++ 1.4.0"
+        exit $DEPS_UNSATISFIED
+    fi
 else
     echo "Este progrma necesita la instalacion de pyhton3"
     exit 1
