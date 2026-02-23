@@ -7,23 +7,29 @@ force=1
 
 main() {
     read -p "Introduzca el tiempo de captura (En segundos)" tiempo
-    ./mqtt_subscribe_emqx_linux > ./mqtt_capture.log
+    echo "[1/4] Ejecutando mqtt_subscribe_emqx_linux y guardando salida en mqtt_capture.log"
+    ./mqtt_subscribe_emqx_linux > ./mqtt_capture.log &
     PID=$!
+    echo "[info] PID=$PID"
     sleep $tiempo
+    echo "[2/4] Finaliznado proceso (pid=$PID)"
     kill $PID
     while kill -0 "$PID" >/dev/null 2>&1; do
         if [[ $kill_timer -ge $MAX_SIGTERM && $force == 1 ]]; then
+            echo "[warn] Ejecutnado segundo metodo de finalizacion"
             kill -2 "$PID"
             force=0
             kill_timer=0
         elif [[ $kill_timer -ge $MAX_SIGTERM && $force == 0 ]]; then
+            echo "[error] Elimiando proceso se pueden producir erores..."
             kill -9 "$PID"
         fi
         sleep 1
         ((kill_timer++))
     done
-    
+    ./plot_mqtt.py
 }
+
 
 #(>/dev/null 2>&1) manda toda salida a null (no muestra salida ni errores)
 if command -v python3 >/dev/null 2>&1; then ## command -v comprueba si python3 está disponible (y cómo lo resolvería bash)
