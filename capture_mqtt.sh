@@ -5,13 +5,13 @@ DEPS_UNSATISFIED=4 #Isntalacion fallida de dependencias
 #(>/dev/null 2>&1) manda toda salida a null (no muestra salida ni errores)
 if command -v python3 >/dev/null 2>&1; then ## command -v comprueba si python3 está disponible (y cómo lo resolvería bash)
     if python3 -c "import matplotlib" >/dev/null 2>&1; then
-        echo "Matplotlib está instalada"
+        echo "Dependencia python3 comprovada"
     else
         echo "Matplotlib no está instalada es necesaria para una correcta instalacion"
         read -r -p "Quieres instalar la libreria? [s/N]" respuesta
         if [[ $respuesta == [Ss] ]]; then ## [[ - ]] permite patrones y [Ss] acepta 'S' o 's'
             if python3 -m pip install --user matplotlib; then
-                #progrma
+                echo "matplotlib intalado correctamente"
             else
                 echo "No se a podido ejecutar python3 -m pip install matplotlib"
                 echo "Porfavor comprueva si pip esta isntalado"
