@@ -1,6 +1,29 @@
 #!/bin/bash
 USER_DECLINED=3 #Usuario rechazó solución automatica de errores (sin solucioanrlo no se puede continuar)
 DEPS_UNSATISFIED=4 #Isntalacion fallida de dependencias
+MAX_SIGTERM=10
+kill_timer=0
+force=1
+
+main() {
+    read -p "Introduzca el tiempo de captura (En segundos)" tiempo
+    ./mqtt_subscribe_emqx_linux > ./mqtt_capture.log
+    PID=$!
+    sleep $tiempo
+    kill $PID
+    while kill -0 "$PID" >/dev/null 2>&1; do
+        if [[ $kill_timer -ge $MAX_SIGTERM && $force == 1 ]]; then
+            kill -2 "$PID"
+            force=0
+            kill_timer=0
+        elif [[ $kill_timer -ge $MAX_SIGTERM && $force == 0 ]]; then
+            kill -9 "$PID"
+        fi
+        sleep 1
+        ((kill_timer++))
+    done
+    
+}
 
 #(>/dev/null 2>&1) manda toda salida a null (no muestra salida ni errores)
 if command -v python3 >/dev/null 2>&1; then ## command -v comprueba si python3 está disponible (y cómo lo resolvería bash)
