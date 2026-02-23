@@ -27,7 +27,10 @@ main() {
         sleep 1
         ((kill_timer++))
     done
-    ./plot_mqtt.py
+    python3 - << 'PY'
+        print("Hola mundo desde Python ejecutado dentro de Bash")
+PY
+    #./plot_mqtt.py
 }
 
 
