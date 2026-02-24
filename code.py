@@ -42,5 +42,26 @@ def extraer_payloads(lineas):
                 continue
 
     return lista_payloads
+#Funcion para organizar los datos por sensor por ejemplo GM102B": [41.0, 45.0]
+def organizar_datos(lista_payloads):
+
+    datos_organizados = {}  # Diccionario vacio
+
+    # Recorremos cada diccionario JSON
+    for payload in lista_payloads:
+
+        # Recorremos cada clave y valor
+        for clave, valor in payload.items():
+
+            # Solo trabajamos con valores numéricos
+            if isinstance(valor, (int, float)):
+                if clave not in datos_organizados:
+                    datos_organizados[clave] = []
+
+                # Anadimos el valor a la lista
+                datos_organizados[clave].append(valor)
+
+    return datos_organizados
+
 
     
