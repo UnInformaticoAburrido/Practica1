@@ -63,5 +63,37 @@ def organizar_datos(lista_payloads):
 
     return datos_organizados
 
+#Funcion para generar graficos PNG
+def generar_graficos(datos):
+
+    # Creamos la carpeta si no existe
+    if not os.path.exists(PLOTS_DIR):
+        os.makedirs(PLOTS_DIR)
+
+    # Recorremos cada sensor
+    for clave, valores in datos.items():
+
+        # Si no hay valores, continuamos
+        if len(valores) == 0:
+            continue
+
+        # Creamos el grafico
+        plt.figure()
+        plt.plot(valores)
+
+        # Titulo y nombres de ejes
+        plt.title(f"{clave} a lo largo del tiempo")
+        plt.xlabel("Medicion")
+        plt.ylabel("Valor")
+
+        # Guardamos el grafico
+        ruta = os.path.join(PLOTS_DIR, f"{clave}.png")
+        plt.savefig(ruta)
+
+        # Cerramos el grafico
+        plt.close()
+
+        print(f"Grafico guardado en: {ruta}")
+
 
     
