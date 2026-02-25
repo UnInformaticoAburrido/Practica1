@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 LOG_FILE = "mqtt_capture.log"
 
 #carpeta para guardar las imagenes 
-LOG_FILE = "mqtt_capture.log"
+PLOTS_DIR = "plots"
 
 #lee el archivo log y devuelve todas las lineas
 def leer_log(nombre_archivo):
@@ -94,6 +94,50 @@ def generar_graficos(datos):
         plt.close()
 
         print(f"Grafico guardado en: {ruta}")
+
+def grafico_ascii(datos):
+
+    print("\nVisualización ASCII:\n")  # Mostramos un titulo en la terminal
+
+    for clave, valores in datos.items():  # Recorremos cada sensor y su lista de valores
+
+        print(f"\n{clave}:")  # Mostramos el nombre del sensor
+
+        for valor in valores:  # Recorremos cada valor del sensor
+
+            # craar una barra usando el simbolo "*" y con tamano maximo 50
+
+            barra = "*" * int(min(valor, 50))
+
+            # Mostrar el valor numérico y su representacion en forma de barra
+            print(f"{valor} | {barra}")
+def main():  
+
+    #leer el archivo log
+    lineas = leer_log(LOG_FILE)  
+
+    #archivo no existe o esta vacio
+    if not lineas:
+        return
+
+    #Extraer los datos JSON de las lineas
+    payloads = extraer_payloads(lineas)  # Obtenemos una lista de diccionarios
+
+    #Organizar los datos por sensor
+    datos = organizar_datos(payloads)  # Convertimos la lista en diccionario organizado
+
+    if not datos:
+        print("No se encontraron datos válidos.")
+        return
+
+    #Generar los graficos PNG
+    generar_graficos(datos)
+
+    #Mostrar la visualizacion ASCII en la terminal
+    grafico_ascii(datos)
+
+if __name__ == "__main__":
+    main()
 
 
     
