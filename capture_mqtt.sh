@@ -31,7 +31,7 @@ main(){
     python3 - << 'PY'
 print("Hola mundo desde Python ejecutado dentro de Bash")
 PY
-    ./plot_mqtt.py
+    python3 ./plot_mqtt.py
 }
 
 
