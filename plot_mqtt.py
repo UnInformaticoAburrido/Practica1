@@ -1,143 +1,148 @@
-# importamos las librerias necesarias
-#nos permite trabajar con el sistema opeartivo
+# Importamos las librerías necesarias
 import os
-#nos permite convertir el texto en formato JSON
 import json
-#nos permite crear graficos y guardarlos como imagenes
 import matplotlib.pyplot as plt
 
-#nombre del archivo del script Bash
-LOG_FILE = "mqtt_capture.log"
 
-#carpeta para guardar las imagenes 
+# Constantes del programa
+LOG_FILE = "mqtt_capture.log"
 PLOTS_DIR = "plots"
 
-#lee el archivo log y devuelve todas las lineas
-def leer_log(nombre_archivo):
-    if not os.path.exists(nombre_archivo):
-        print("El archivo log no existe")
-        return []
-    with open(nombre_archivo,"r") as f:
-        return f.readlines()
 
-#Extrae los JSON de las lineas y devuelve una lista de diccionarios
+# Leer archivo log
+def leer_log(nombre_archivo):
+
+    # Verificar si el archivo existe
+    if not os.path.exists(nombre_archivo):
+        print("El archivo log no existe.")
+        return []
+
+    try:
+        with open(nombre_archivo, "r", encoding="utf-8") as f:
+            lineas = f.readlines()
+
+            # Verificar si el archivo esta vacaio
+            if len(lineas) == 0:
+                print("El archivo log está vacío.")
+                return []
+
+            return lineas
+
+    except (OSError, UnicodeDecodeError) as e:
+        print(f"Error al leer el archivo: {e}")
+        return []
+
+
+# Extraer JSON de las lineas
 def extraer_payloads(lineas):
-    
+
     lista_payloads = []
 
     for linea in lineas:
         if "Payload:" in linea:
             try:
-                # Separamos la parte JSON
                 parte_json = linea.split("Payload:")[1].strip()
-                
-                # Convertimos el texto JSON en diccionario
                 datos = json.loads(parte_json)
-
-                # Anadimos el diccionario a la lista
                 lista_payloads.append(datos)
-
             except json.JSONDecodeError:
-                # Si hay error en el JSON, ignoramos la linea
                 continue
 
     return lista_payloads
-#Funcion para organizar los datos por sensor por ejemplo GM102B": [41.0, 45.0]
+
+
+
+# Organizar datos por sensor
 def organizar_datos(lista_payloads):
 
-    datos_organizados = {}  # Diccionario vacio
+    datos_organizados = {}
 
-    # Recorremos cada diccionario JSON
     for payload in lista_payloads:
-
-        # Recorremos cada clave y valor
         for clave, valor in payload.items():
 
-            # Solo trabajamos con valores numéricos
             if isinstance(valor, (int, float)):
+
                 if clave not in datos_organizados:
                     datos_organizados[clave] = []
 
-                # Anadimos el valor a la lista
                 datos_organizados[clave].append(valor)
 
     return datos_organizados
 
-#Funcion para generar graficos PNG
+
+
+# Generar graficos PNG
 def generar_graficos(datos):
 
-    # Creamos la carpeta si no existe
+    # Crear carpeta si no existe
     if not os.path.exists(PLOTS_DIR):
         os.makedirs(PLOTS_DIR)
 
-    # Recorremos cada sensor
     for clave, valores in datos.items():
 
-        # Si no hay valores, continuamos
-        if len(valores) == 0:
+        if not valores:
             continue
 
-        # Creamos el grafico
         plt.figure()
         plt.plot(valores)
-
-        # Titulo y nombres de ejes
         plt.title(f"{clave} a lo largo del tiempo")
-        plt.xlabel("Medicion")
+        plt.xlabel("Medición")
         plt.ylabel("Valor")
+        plt.grid(True)
 
-        # Guardamos el grafico
         ruta = os.path.join(PLOTS_DIR, f"{clave}.png")
         plt.savefig(ruta)
-
-        # Cerramos el grafico
         plt.close()
 
-        print(f"Grafico guardado en: {ruta}")
+        print(f"Gráfico guardado en: {ruta}")
 
+
+
+# Grafico ASCII en terminal
 def grafico_ascii(datos):
 
-    print("\nVisualización ASCII:\n")  # Mostramos un titulo en la terminal
+    print("\nVisualización ASCII:\n")
 
-    for clave, valores in datos.items():  # Recorremos cada sensor y su lista de valores
+    for clave, valores in datos.items():
 
-        print(f"\n{clave}:")  # Mostramos el nombre del sensor
+        print(f"\n{clave}:")
 
-        for valor in valores:  # Recorremos cada valor del sensor
-
-            # craar una barra usando el simbolo "*" y con tamano maximo 50
+        for valor in valores:
 
             barra = "*" * int(min(valor, 50))
+            print(f"{valor:>6} | {barra}")
 
-            # Mostrar el valor numérico y su representacion en forma de barra
-            print(f"{valor} | {barra}")
-def main():  
 
-    #leer el archivo log
-    lineas = leer_log(LOG_FILE)  
 
-    #archivo no existe o esta vacio
+# Funcion principal
+def main():
+
+    # Leer archivo
+    lineas = leer_log(LOG_FILE)
+
     if not lineas:
         return
 
-    #Extraer los datos JSON de las lineas
-    payloads = extraer_payloads(lineas)  # Obtenemos una lista de diccionarios
+    # Extraer JSON
+    payloads = extraer_payloads(lineas)
 
-    #Organizar los datos por sensor
-    datos = organizar_datos(payloads)  # Convertimos la lista en diccionario organizado
-
-    if not datos:
-        print("No se encontraron datos válidos.")
+    if not payloads:
+        print("No se encontraron payloads válidos.")
         return
 
-    #Generar los graficos PNG
+    # Organizar datos
+    datos = organizar_datos(payloads)
+
+    if not datos:
+        print("No hay datos numéricos para graficar.")
+        return
+
+    # Generar graficos
     generar_graficos(datos)
 
-    #Mostrar la visualizacion ASCII en la terminal
+    # Mostrar grafico ASCII
     grafico_ascii(datos)
 
+
+# Ejecutar programa
 if __name__ == "__main__":
     main()
-
-
-    
