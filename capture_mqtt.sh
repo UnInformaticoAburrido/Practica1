@@ -4,6 +4,7 @@ DEPS_UNSATISFIED=4 #Isntalacion fallida de dependencias
 MAX_SIGTERM=10
 kill_timer=0
 force=1
+EXPECTED_PAHO_CPP_VERSION="1.3.2"
 main(){
     read -p "Introduzca el tiempo de captura (En segundos)" tiempo
     echo "[1/4] Ejecutando mqtt_subscribe_emqx_linux y guardando salida en mqtt_capture.log"
@@ -68,14 +69,15 @@ if command -v python3 >/dev/null 2>&1; then ## command -v comprueba si python3 e
         fi
     fi
     MQTTVersion=$(strings /usr/local/lib/libpaho-mqttpp3.so.1 | grep -Ei "Paho MQTT C\+\+")
-    if [[ "$MQTTVersion" == *"v. 1.4."* ]]; then
+    if [[ "$MQTTVersion" == *"v. ${EXPECTED_PAHO_CPP_VERSION}"* ]]; then
         echo "Version Paho MQTT C++ correcta o compatible"
     else
         echo "Paho MQTT C++ no esta instalado o la version isntalada es incompatible"
-        echo "Porfavor instale una versión compatible con C++ 1.4.0"
+        echo "Porfavor instale la version esperada de Paho MQTT C++: ${EXPECTED_PAHO_CPP_VERSION}"
         exit $DEPS_UNSATISFIED
     fi
 else
     echo "Este progrma necesita la instalacion de pyhton3"
     exit 1
 fi
+main
