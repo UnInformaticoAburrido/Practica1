@@ -4,8 +4,7 @@ DEPS_UNSATISFIED=4 #Isntalacion fallida de dependencias
 MAX_SIGTERM=10
 kill_timer=0
 force=1
-
-main() {
+main(){
     read -p "Introduzca el tiempo de captura (En segundos)" tiempo
     echo "[1/4] Ejecutando mqtt_subscribe_emqx_linux y guardando salida en mqtt_capture.log"
     ./mqtt_subscribe_emqx_linux > ./mqtt_capture.log &
