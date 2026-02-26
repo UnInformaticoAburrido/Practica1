@@ -5,6 +5,7 @@ MAX_SIGTERM=10
 kill_timer=0
 force=1
 EXPECTED_PAHO_CPP_VERSION="1.3.2"
+EXPECTED_PAHO_CPP_SERIES="1.3."
 main(){
     read -p "Introduzca el tiempo de captura (En segundos)" tiempo
     echo "[1/4] Ejecutando mqtt_subscribe_emqx_linux y guardando salida en mqtt_capture.log"
@@ -28,9 +29,9 @@ main(){
         ((kill_timer++))
     done
     python3 - << 'PY'
-        print("Hola mundo desde Python ejecutado dentro de Bash")
+print("Hola mundo desde Python ejecutado dentro de Bash")
 PY
-    #./plot_mqtt.py
+    ./plot_mqtt.py
 }
 
 
@@ -68,13 +69,27 @@ if command -v python3 >/dev/null 2>&1; then ## command -v comprueba si python3 e
             exit $USER_DECLINED
         fi
     fi
-    MQTTVersion=$(strings /usr/local/lib/libpaho-mqttpp3.so.1 | grep -Ei "Paho MQTT C\+\+")
-    if [[ "$MQTTVersion" == *"v. ${EXPECTED_PAHO_CPP_VERSION}"* ]]; then
-        echo "Version Paho MQTT C++ correcta o compatible"
-    else
-        echo "Paho MQTT C++ no esta instalado o la version isntalada es incompatible"
-        echo "Porfavor instale la version esperada de Paho MQTT C++: ${EXPECTED_PAHO_CPP_VERSION}"
+    MQTTLibPath=$(ldconfig -p 2>/dev/null | awk '/libpaho-mqttpp3\.so/{print $4; exit}')
+    if [[ -z "$MQTTLibPath" ]]; then
+        MQTTLibPath=$(ls /usr/local/lib/libpaho-mqttpp3.so* /usr/local/lib64/libpaho-mqttpp3.so* 2>/dev/null | head -n1)
+    fi
+
+    if [[ -z "$MQTTLibPath" ]]; then
+        echo "Paho MQTT C++ no esta instalado (no se encontro libpaho-mqttpp3)"
         exit $DEPS_UNSATISFIED
+    fi
+
+    MQTTVersion=$(strings "$MQTTLibPath" | grep -Eio "v\. [0-9]+\.[0-9]+\.[0-9]+" | head -n1)
+    if [[ "$MQTTVersion" == *"v. ${EXPECTED_PAHO_CPP_VERSION}"* ]]; then
+        echo "Version Paho MQTT C++ exacta detectada: ${EXPECTED_PAHO_CPP_VERSION}"
+    elif [[ "$MQTTVersion" == *"v. ${EXPECTED_PAHO_CPP_SERIES}"* ]]; then
+        echo "Version Paho MQTT C++ compatible detectada (${MQTTVersion}). Continuando..."
+    else
+        if [[ -n "$MQTTVersion" ]]; then
+            echo "[warn] Version Paho MQTT C++ no esperada (${MQTTVersion}), pero se intentara continuar"
+        else
+            echo "[warn] No se pudo leer version de Paho MQTT C++ en ${MQTTLibPath}, pero la libreria existe. Continuando..."
+        fi
     fi
 else
     echo "Este progrma necesita la instalacion de pyhton3"
