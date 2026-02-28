@@ -1,159 +1,111 @@
-# IMPORTACION DE LIBRERIAS
-import os                 # Permite trabajar con archivos y carpetas
-import json               # Permite convertir texto JSON en diccionario Python
-import matplotlib.pyplot as plt   # Permite crear graficos
+import sys
+import json
+import matplotlib.pyplot as plt
 
-LOG_FILE = "mqtt_capture.log"      # Archivo generado por MQTT
-OUTPUT_IMAGE = "all_sensors.png"   # Imagen unica con todos los sensores
+LOG_FILE = "mqtt_capture.log"
+OUTPUT_IMAGE = "Grafica.png"
+PRECISION_GRAFICA=10 #Para la representacion se usa esta constante y determina la presicion y altura del grafico ya que los datos se normalizan
 
-#LEER EL ARCHIVO LOG
-#Lee el archivo log y devuelve todas las lineas si no existe o esta vacio devuelve lista vacia   
-def leer_log(nombre_archivo):
-    
-    # Verificamos si el archivo existe
-    if not os.path.exists(nombre_archivo):
+def read_log(LOG_FILE):
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as file:
+                lines = file.readlines()
+                return lines
+    except FileNotFoundError:
         print("El archivo log no existe.")
-        return []
-    with open(nombre_archivo, "r", encoding="utf-8") as f:
-        lineas = f.readlines()
+        sys.exit(1)#If the program dont will do nothing is veter stop the program
 
-        # Verificamos si esta vacio
-        if len(lineas) == 0:
-            print("El archivo esta vacio.")
-            return []
+def extract_payloads(lines):
+    data = []
+    for line in lines:
+        if "Payload:" in line:
+            text_after = line.split("Payload:", 1)[1].strip()
+            start = text_after.find("{")
+            if start != -1:
+                end = text_after.find("}", start)
+                if end != -1:
+                    possible_json = text_after[start:end+1]
+                    try:
+                        jsonLine = json.loads(possible_json)
+                        data.append(jsonLine)
+                    except json.JSONDecodeError:
+                        pass #For now we don't do nothing with not valid json lines
+    return data
 
-        return lineas
+def generar_grafico(data):
+    all_values = []
+    for item in data:
+        for val in item.values():
+            if isinstance(val, (int, float)): #We use the funtion isinstance() to check if the value (val) is an int or an float to avoid use not numeric values
+                all_values.append(val)
 
-
-#Extraer los JSON despues de la palabra 'Payload:'y devolver una lista de diccionarios
-def extraer_payloads(lineas):
-    lista_payloads = []
-
-    # Recorremos todas las lineas
-    for linea in lineas:
-
-        # Solo procesamos las lineas que contienen datos
-        if "Payload:" in linea:
-
-            try:
-                # Separar la parte JSON
-                parte_json = linea.split("Payload:")[1].strip()
-
-                # Convertir texto JSON en diccionario
-                datos = json.loads(parte_json)
-
-                # Guardar el diccionario
-                lista_payloads.append(datos)
-
-            except json.JSONDecodeError:
-                # Si el JSON esta mal formado, lo ignoramos
-                continue
-
-    return lista_payloads
-
-
-
-#ORGANIZAR LOS DATOS POR SENSOR
-def organizar_datos(lista_payloads):
-    
-    #clave = nombre del sensor
-    #valor = lista de mediciones
-    datos_organizados = {}
-
-    # Recorremos cada mensaje JSON
-    for payload in lista_payloads:
-
-        # Recorremos cada sensor dentro del JSON
-        for clave, valor in payload.items():
-
-            # Solo aceptamos valores numericos
-            if isinstance(valor, (int, float)):
-
-                # Si el sensor no existe aun en el diccionario
-                if clave not in datos_organizados:
-                    datos_organizados[clave] = []
-
-                # Anadimos el valor a su lista
-                datos_organizados[clave].append(valor)
-
-    return datos_organizados
-
-
-
-
-#Generar un grafico PNG
-def generar_grafico_unico(datos):
-    # Creamos una figura grande para mejor visibilidad
     plt.figure(figsize=(12, 6))
-
-    # Dibujamos cada sensor como una curva diferente
-    for clave, valores in datos.items():
-        plt.plot(valores, label=clave)
-
-    # Titulo y etiquetas
-    plt.title("Todos los sensores")
-    plt.xlabel("Numero de medicion")
-    plt.ylabel("Valor original")
-
-    # Mostramos la leyenda
-    plt.legend(fontsize=8)
-
-    # Activamos cuadricula
+    plt.plot(all_values)
+    plt.title("Todos los datos recogidos")
+    plt.xlabel("Índice")
+    plt.ylabel("Valor")
     plt.grid(True)
-
-    # Guardamos la imagen
     plt.savefig(OUTPUT_IMAGE)
-
-    # Cerramos la figura
     plt.close()
 
-    print(f"Grafico guardado en: {OUTPUT_IMAGE}")
+    print(f"Gráfico guardado en: {OUTPUT_IMAGE}")
 
+def grafico_ascii(data):
+    vals = []
+    for d in data:
+        for v in d.values():
+            if isinstance(v, (int, float)):
+                vals.append(v)
 
+    if not vals: #Toda lista vacia en pyhton 3 se considra false negar un valor falso da positivo por lo que este if solo saltara si no se ha guardado nada en vals
+        print("No hay datos para mostrar.")
+        return
+    
+    min_val = 0
+    max_val = max(vals)
+    n = len(vals)
 
-#Generar un grafico ASCII y mostrarlo en la terminal
-def grafico_ascii_global(datos):
-    print("\n---GRAFICO ASCII GLOBAL---\n")
+    wide = max_val if max_val != 0 else 1
 
-    # Recorremos cada sensor
-    for clave, valores in datos.items():
+    lines = []
+    for v in vals:
+        valor_escalado = int((v - min_val) / wide  * (PRECISION_GRAFICA - 1))
+        lines.append(valor_escalado)
 
-        print(f"\nSensor: {clave}")
+    width = n + 3
 
-        # Recorremos cada valor del sensor
-        for valor in valores:
+    canvas = []
+    for _ in range(PRECISION_GRAFICA+1):
+        row = []
+        for _ in range(width+3):
+            row.append(" ")
+        canvas.append(row)
 
-            # Creamos una barra proporcional al valor (maximo 50)
-            barra = "*" * int(min(valor, 50))
+    for x, f in enumerate(lines):
+        y = PRECISION_GRAFICA - f
+        canvas[y][x+3] = "*"
 
-            # Mostramos el valor y la barra
-            print(f"{valor:>8.2f} | {barra}")
+    for y in range(PRECISION_GRAFICA+1):
+        canvas[y][3] = "|"
 
+    for x in range(3, width):
+        canvas[PRECISION_GRAFICA][x] = "-"
+    canvas[PRECISION_GRAFICA][width+1] = f"{len(vals)-3}"
+    
+    canvas[PRECISION_GRAFICA][0:3] = [" "," ", "0"]
 
-# FUNCION PRINCIPAL
+    label_max = f"{max_val:.0f}"
+    lbl = list(label_max.rjust(2))
+    canvas[0][0:3] = lbl
+    print(f"Imprimiendo grafico con {PRECISION_GRAFICA} de precision")
+    for linea in canvas:
+        print("".join(linea))
+
 def main():
-    # 1) Leer archivo
-    lineas = leer_log(LOG_FILE)
-    if not lineas:
-        return
-
-    # 2) Extraer JSON
-    payloads = extraer_payloads(lineas)
-    if not payloads:
-        print("No se encontraron datos validos.")
-        return
-
-    # 3) Organizar datos
-    datos = organizar_datos(payloads)
-    if not datos:
-        print("No hay datos numericos.")
-        return
-
-    # 4) Generar grafico PNG
-    generar_grafico_unico(datos)
-
-    # 5) Mostrar grafico ASCII
-    grafico_ascii_global(datos)
+    lines = read_log(LOG_FILE)
+    data = extract_payloads(lines)
+    generar_grafico(data)
+    grafico_ascii(data)
 
 
 if __name__ == "__main__":
